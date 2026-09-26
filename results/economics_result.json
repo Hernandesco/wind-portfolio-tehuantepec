@@ -1,0 +1,30 @@
+{
+  "conservative": {
+    "mean_aep_gwh": 142.58602567356897,
+    "lcoe_usd_per_mwh": 312.12537789837916,
+    "npv_usd_m": -415.4211386934728,
+    "cvar95_usd_m_per_yr": -3.0804204281057315,
+    "cvar_vs_mean_pct": -41.068865049907174
+  },
+  "balanced": {
+    "mean_aep_gwh": 779.1237388476502,
+    "lcoe_usd_per_mwh": 60.331992977054334,
+    "npv_usd_m": -123.35406428845471,
+    "cvar95_usd_m_per_yr": 21.649597082328736,
+    "cvar_vs_mean_pct": -18.18166231616332
+  },
+  "aggressive": {
+    "mean_aep_gwh": 890.2172638956454,
+    "lcoe_usd_per_mwh": 51.51197597284404,
+    "npv_usd_m": -61.36307340754586,
+    "cvar95_usd_m_per_yr": 26.643882183593227,
+    "cvar_vs_mean_pct": -15.308101868615942
+  },
+  "single_site_benchmark": {
+    "mean_aep_gwh": 890.2172638956454,
+    "lcoe_usd_per_mwh": 51.51197597284404,
+    "npv_usd_m": -61.36307340754586,
+    "cvar95_usd_m_per_yr": 26.643882183593227,
+    "cvar_vs_mean_pct": -15.308101868615942
+  }
+}
