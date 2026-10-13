@@ -33,8 +33,8 @@ def arrow(p0, p1, color="#333333", lw=2.2):
 
 # Inputs
 box(0.1, 5.65, 9.8, 1.45, "#F2F2F2", "#666666", "Input data",
-    [r"ERA5 hourly wind speed and direction at 100 m (2000$-$2024), 20 candidate sites; "
-     r"V150-4.2 MW power curve",
+    [r"ERA5 hourly wind (100 m and 10 m, 2000$-$2024), 20 candidate sites; "
+     r"AW-77/1500 power curve at 80 m hub height",
      r"$\rightarrow$ capacity factors $CF_i(t)$ and site covariance matrix $\Sigma^{(0)}$"],
     start=0.75, step=0.4, line_size=8.6)
 
@@ -45,7 +45,7 @@ box(0.1, 2.3, 3.9, 2.9, "#EAF0FA", "#1F5C99", "Level 1 (Macro)\nSite Portfolio O
      r"$\rightarrow$ portfolio weights $\mathbf{w}^{*}$"])
 box(6.0, 2.3, 3.9, 2.9, "#FCF0E2", "#C97A1C", "Level 2 (Micro)\nTurbine Layout Optimization",
     [r"Bastankhah-Gaussian wake (Eq. 9$-$10)",
-     r"Risk-adjusted objective (Eq. 15)",
+     r"Layout search under land budget (Eq. 15)",
      r"$\rightarrow$ wake-risk covariance $\Sigma^{\mathrm{wake}}$"])
 
 # Inputs -> levels

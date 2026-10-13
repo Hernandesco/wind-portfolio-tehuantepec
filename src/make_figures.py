@@ -55,7 +55,7 @@ def fig_efficient_frontier():
 
 def fig_wind_roses():
     sites = list(cf_df.columns)
-    fig = plt.figure(figsize=(12, 10))
+    fig = plt.figure(figsize=(9, 7.4))
     for i, site in enumerate(sites):
         ax = fig.add_subplot(4, 5, i + 1, projection="polar")
         d = dir_df[site].values
@@ -66,8 +66,8 @@ def fig_wind_roses():
                edgecolor="k", linewidth=0.3)
         ax.set_theta_zero_location("N")
         ax.set_theta_direction(-1)
-        ax.set_title(site, fontsize=10)
-        ax.tick_params(labelsize=6)
+        ax.set_title(site, fontsize=11)
+        ax.tick_params(labelsize=7)
     fig.tight_layout()
     fig.savefig(os.path.join(FIG_DIR, "figB1_wind_roses.png"), dpi=250)
     plt.close(fig)
@@ -117,16 +117,16 @@ def fig_layout_comparison(area=30.0):
     xmax = max(p[:, 0].max() for p in lays) + 6.5 * D
     ymin = min(p[:, 1].min() for p in lays) - 1.5 * D
     ymax = max(p[:, 1].max() for p in lays) + 1.5 * D
-    fig, axes = plt.subplots(1, 2, figsize=(11, 5.2), sharex=True, sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(8, 4.4), sharex=True, sharey=True)
     for ax, (label, row), pos in zip(axes, panels, lays):
-        ax.scatter(pos[:, 0], pos[:, 1], s=130, c="#1f77b4", edgecolor="k", zorder=5)
+        ax.scatter(pos[:, 0], pos[:, 1], s=70, c="#1f77b4", edgecolor="k", zorder=5)
         ax_x = xmax - 2.0 * D
         ax.annotate("", xy=(ax_x, 3.0 * D), xytext=(ax_x, -3.0 * D),
                     arrowprops=dict(arrowstyle="<|-|>", color="#B22222", lw=2))
-        ax.text(ax_x, -3.6 * D, "dominant N-S wind", color="#B22222", fontsize=8, ha="center", va="top")
+        ax.text(ax_x, -3.6 * D, "dominant\nN-S wind", color="#B22222", fontsize=7.5, ha="center", va="top")
         ax.set_title(f"{label}: {row['along_D']:.0f}D x {row['cross_D']:.0f}D, stagger {row['stagger']:.2f}"
                      f"\nAEP = {row['aep_gwh']:.2f} GWh/yr, WR = {row['wake_risk']:.4f} MW$^2$, "
-                     f"corr = {row['mean_corr']:.3f}", fontsize=9.5)
+                     f"corr = {row['mean_corr']:.3f}", fontsize=7.5)
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         ax.set_aspect("equal")
