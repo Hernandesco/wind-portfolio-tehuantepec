@@ -49,21 +49,31 @@ Raw downloads are not committed (`data/raw*/` is git-ignored); the 100 m series 
 
 ## Main results (this repository, `results/`)
 
-| Portfolio | E[CF] (%) | Std (%) | Sharpe | LCOE (USD/MWh) | NPV (USD M) |
-|---|---|---|---|---|---|
-| Conservative (T03 7%, T15 91.5%, T11/T20 ~1% each) | 8.2 | 11.0 | 0.75 | 308.9 | −414.7 |
-| Balanced / max-Sharpe (T03 57%, T18 43%) | 47.0 | 38.1 | 1.24 | 56.9 | −101.2 |
-| Aggressive / single best site (T03) | 52.9 | 44.6 | 1.19 | 49.5 | −44.0 |
+Portfolios are minimum-variance points on the efficient frontier of the 7 sites retained by the
+correlation pre-filter (rho_max = 0.85): *conservative* = E[CF] >= 20 %, *balanced* = E[CF] >= 35 %,
+*aggressive* = 100 % in the highest-yield site (T03); the maximum-Sharpe portfolio is a reference.
 
-* **Loop (Eqs. 16–17):** converges after one re-solve (max weight change 9.1×10⁻⁴ < ε = 10⁻³).
-  Wake-induced capacity-factor loss has a standard deviation of only 0.4–0.9 percentage points
-  versus 10–45 points for site capacity factors, so Σʷᵃᵏᵉ is a very small correction to Σ⁽⁰⁾.
-* **Level 2:** with a land budget of 36 D² per turbine (≈7 MW/km² for this turbine) the
-  AEP-maximizing layout (6D × 6D, staggered rows) is also the minimum wake-risk layout, i.e. no
-  trade-off appears. A small trade-off appears only at 30 D²
-  (`results/layout_density_sweep.csv`: wake risk −14% for −0.12% AEP, correlation slightly higher).
-* The pre-filter retains 7 of 20 sites; the k-means clusters are wind regimes (high / moderate /
-  low wind), not contiguous geographic zones.
+| Portfolio | Weights | E[CF] (%) | Std (%) | Sharpe | LCOE (USD/MWh) | NPV (USD M) |
+|---|---|---|---|---|---|---|
+| Conservative | T03 25 %, T15 66 %, T18 9 % | 20.0 | 17.8 | 1.13 | 130.9 | -318.6 |
+| Balanced | T03 42 %, T15 29 %, T18 29 % | 35.0 | 28.8 | 1.22 | 76.0 | -198.2 |
+| Aggressive (single site) | T03 100 % | 52.9 | 44.6 | 1.19 | 49.5 | -44.0 |
+| Max-Sharpe (reference) | T03 57 %, T18 43 % | 47.0 | 38.1 | 1.24 | 56.9 | -101.2 |
+
+* **Diversification:** the conservative portfolio cuts the standard deviation of capacity factor by
+  60.2 % relative to the single best site, at a much lower expected capacity factor.
+* **Loop (Eqs. 16-17):** converges after one re-solve (max weight change 1.4e-4 < epsilon = 1e-3; selected
+  sites T03, T15, T18 unchanged). The wake-induced capacity-factor loss has a standard deviation of only
+  0.4-0.9 percentage points versus 10-45 points for site capacity factors, so Sigma^wake is a very small
+  correction to Sigma^(0).
+* **Level 2:** with a land budget of 36 D^2 per turbine (about 7 MW/km^2 for this turbine) the AEP-maximizing
+  layout (6D x 6D, staggered rows) is also the minimum wake-risk layout, i.e. no trade-off appears; the same
+  holds at 25 and 50 D^2. Only at 30 D^2 do the layouts differ (wake risk -14.1 % for -0.12 % AEP;
+  `results/layout_density_sweep.csv`).
+* The k-means clusters are wind regimes (high / moderate / low wind), not contiguous geographic zones.
+* The 20 % and 35 % return floors are conventions chosen to define representative frontier points; an earlier
+  development version used a percentile rule that produced a degenerate conservative portfolio and was
+  replaced.
 
 ## Limitations
 

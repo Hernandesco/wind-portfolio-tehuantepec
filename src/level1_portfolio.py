@@ -15,7 +15,8 @@ RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 RHO_MAX = 0.85
-CONSERVATIVE_RETURN_PERCENTILE = 40
+CONSERVATIVE_RETURN_FLOOR = 0.20  # conservative portfolio: minimum variance s.t. E[CF] >= 20%
+BALANCED_RETURN_FLOOR = 0.35      # balanced portfolio: minimum variance s.t. E[CF] >= 35%
 
 
 def correlation_prefilter(cf_df, rho_max=RHO_MAX):
@@ -59,16 +60,18 @@ def sharpe(w, mu, cov):
 
 
 def solve_portfolios(mu, cov):
-    """Return weight vectors for the conservative, balanced (max-Sharpe) and aggressive portfolios."""
+    """Representative frontier points: conservative (E[CF] >= 20%), balanced (E[CF] >= 35%),
+    aggressive (100% in the highest-yield site) and, for reference, the maximum-Sharpe portfolio."""
     n = len(mu)
-    w_cons = min_variance_weights(cov, np.percentile(mu, CONSERVATIVE_RETURN_PERCENTILE), mu)
     res = minimize(lambda w: -sharpe(w, mu, cov), np.ones(n) / n, method="SLSQP",
                    bounds=[(0.0, 1.0)] * n,
                    constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1.0}],
                    options={"maxiter": 1000, "ftol": 1e-12})
     w_agg = np.zeros(n)
     w_agg[int(np.argmax(mu))] = 1.0
-    return {"conservative": w_cons, "balanced": res.x, "aggressive": w_agg}
+    return {"conservative": min_variance_weights(cov, CONSERVATIVE_RETURN_FLOOR, mu),
+            "balanced": min_variance_weights(cov, BALANCED_RETURN_FLOOR, mu),
+            "aggressive": w_agg, "max_sharpe": res.x}
 
 
 def summarize(w, mu, cov, sites, regimes):
