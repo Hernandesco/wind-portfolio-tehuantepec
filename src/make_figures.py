@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(__file__))
 from wake_model import turbine_layout
-from level1_portfolio import correlation_prefilter
+from level1_portfolio import correlation_prefilter, min_variance_weights, sharpe
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "processed")
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "results")
@@ -19,7 +19,7 @@ os.makedirs(FIG_DIR, exist_ok=True)
 cf_df = pd.read_parquet(os.path.join(DATA_DIR, "capacity_factors.parquet"))
 dir_df = pd.read_parquet(os.path.join(DATA_DIR, "wind_direction.parquet"))
 site_stats = pd.read_csv(os.path.join(DATA_DIR, "site_stats.csv"), index_col=0)
-with open(os.path.join(RESULTS_DIR, "portfolios.json")) as f:
+with open(os.path.join(RESULTS_DIR, "portfolios_converged.json")) as f:
     port_data = json.load(f)
 with open(os.path.join(RESULTS_DIR, "economics_result.json")) as f:
     econ = json.load(f)
@@ -119,14 +119,21 @@ def fig_layout_comparison():
 
 def fig_rhomax_sensitivity():
     rhos = np.linspace(0.5, 0.99, 15)
-    n_retained = []
+    n_retained, sh = [], []
     for rho in rhos:
         retained, _ = correlation_prefilter(cf_df, rho)
         n_retained.append(len(retained))
+        mu = cf_df[retained].mean().values
+        cov = cf_df[retained].cov().values
+        w = min_variance_weights(cov, np.percentile(mu, 40), mu)
+        sh.append(sharpe(w, mu, cov) if w is not None else np.nan)
     fig, ax1 = plt.subplots(figsize=(7, 5))
     ax1.plot(rhos, n_retained, "o-", color="#1f77b4")
-    ax1.set_xlabel(r"Correlation pre-filter threshold $\rho_{max}$")
+    ax1.set_xlabel(r"Correlation pre-filter threshold $\rho_{\max}$")
     ax1.set_ylabel("Number of retained sites", color="#1f77b4")
+    ax2 = ax1.twinx()
+    ax2.plot(rhos, sh, "s--", color="#d62728")
+    ax2.set_ylabel("Conservative portfolio Sharpe-style ratio", color="#d62728")
     fig.tight_layout()
     fig.savefig(os.path.join(FIG_DIR, "fig4_rhomax_sensitivity.png"), dpi=300)
     plt.close(fig)

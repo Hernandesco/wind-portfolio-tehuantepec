@@ -1,25 +1,78 @@
 {
   "site": "T03",
   "n_turbines": 16,
-  "n_configs_evaluated": 120,
+  "n_configs_evaluated": 76,
+  "max_area_d2": 36.0,
+  "aep_tolerance": 0.005,
   "aep_maximizing": {
     "rotation": 0.0,
-    "along_D": 12.0,
-    "cross_D": 8.0,
+    "along_D": 6.0,
+    "cross_D": 6.0,
     "stagger": 0.5,
-    "aep_gwh": 296.607714044155,
-    "mean_corr": 0.28927604458754613,
-    "wake_risk": 0.0022342294079607116
+    "aep_gwh": 110.19837049024424,
+    "mean_corr": 0.5675281755533875,
+    "wake_risk": 0.04491059983917704
   },
   "risk_adjusted": {
     "rotation": 0.0,
-    "along_D": 9.0,
-    "cross_D": 8.0,
+    "along_D": 6.0,
+    "cross_D": 6.0,
     "stagger": 0.5,
-    "aep_gwh": 296.37040679739476,
-    "mean_corr": 0.032551390197248724,
-    "wake_risk": -8.25315991538816e-06
+    "aep_gwh": 110.19837049024424,
+    "mean_corr": 0.5675281755533875,
+    "wake_risk": 0.04491059983917704
   },
-  "correlation_reduction_pct": 88.74729145178235,
-  "aep_change_pct": -0.08000710552150274
+  "correlation_reduction_pct": 0.0,
+  "aep_change_pct": 0.0,
+  "wake_risk_change_pct": 0.0,
+  "density_sweep": [
+    {
+      "max_area_d2": 25.0,
+      "n_configs": 28,
+      "aep_max_layout": "5D x 5D, stagger 0.5",
+      "risk_adj_layout": "5D x 5D, stagger 0.5",
+      "aep_max_gwh": 109.75402400188872,
+      "aep_change_pct": 0.0,
+      "corr_aep_max": 0.5788636291225568,
+      "corr_risk_adj": 0.5788636291225568,
+      "wr_aep_max": 0.08932354683296667,
+      "wr_risk_adj": 0.08932354683296667
+    },
+    {
+      "max_area_d2": 30.0,
+      "n_configs": 48,
+      "aep_max_layout": "5D x 6D, stagger 0.5",
+      "risk_adj_layout": "6D x 5D, stagger 0.5",
+      "aep_max_gwh": 109.92630890760131,
+      "aep_change_pct": -0.11523759900344474,
+      "corr_aep_max": 0.5506137870670644,
+      "corr_risk_adj": 0.5640334122117304,
+      "wr_aep_max": 0.09800216678397104,
+      "wr_risk_adj": 0.08414127940964725
+    },
+    {
+      "max_area_d2": 36.0,
+      "n_configs": 76,
+      "aep_max_layout": "6D x 6D, stagger 0.5",
+      "risk_adj_layout": "6D x 6D, stagger 0.5",
+      "aep_max_gwh": 110.19837049024424,
+      "aep_change_pct": 0.0,
+      "corr_aep_max": 0.5675281755533875,
+      "corr_risk_adj": 0.5675281755533875,
+      "wr_aep_max": 0.04491059983917704,
+      "wr_risk_adj": 0.04491059983917704
+    },
+    {
+      "max_area_d2": 50.0,
+      "n_configs": 132,
+      "aep_max_layout": "5D x 10D, stagger 0.5",
+      "risk_adj_layout": "5D x 10D, stagger 0.5",
+      "aep_max_gwh": 110.63365916618032,
+      "aep_change_pct": 0.0,
+      "corr_aep_max": 0.4749073597650299,
+      "corr_risk_adj": 0.4749073597650299,
+      "wr_aep_max": 0.013022635627969565,
+      "wr_risk_adj": 0.013022635627969565
+    }
+  ]
 }

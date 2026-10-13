@@ -1,126 +1,80 @@
 # Two-Level Markowitz Wind Portfolio Optimization — Isthmus of Tehuantepec
 
-Code and data-processing pipeline for:
+Code and data-processing pipeline for the two-level framework described in:
 
 > Hernandez-Escobedo, Q. (2026). *A Two-Level Markowitz Framework for Wind Farm Portfolio
 > Optimization: Spatial Diversification and Wake-Risk Management under Transmission-Constrained
 > Grid Access — Application to the Isthmus of Tehuantepec Wind Corridor, Oaxaca, Mexico.*
 > Submitted to *Energy Economics*.
 
-This repository implements the two-level optimization framework described in the paper:
+- **Level 1 (macro):** Markowitz mean-variance optimization over 20 candidate sites using 25 years
+  (2000–2024) of ERA5 wind data; correlation pre-filter, k-means wind regimes, efficient frontier.
+- **Level 2 (micro):** wake-risk-aware layout search with the Bastankhah-Gaussian wake model,
+  using turbine power deficits (Eqs. 12–14) under a land-use budget.
+- **Integration loop:** Level 2 wake-loss covariance is fed back into Level 1
+  (Σ⁽ᵏ⁺¹⁾ = Σ⁽⁰⁾ + Σʷᵃᵏᵉ, Eq. 16) until the portfolio weights converge (Eq. 17).
+- **Economics:** NPV, LCOE and CVaR(95%) with NREL 2024 ATB land-based wind costs.
 
-- **Level 1 (macro):** Markowitz mean-variance portfolio optimization over 20 candidate wind
-  sites in the Isthmus of Tehuantepec, using 25 years (2000–2024) of ERA5 reanalysis wind data.
-- **Level 2 (micro):** wake-risk-aware turbine layout optimization at the site level, using the
-  Bastankhah-Gaussian wake model, treating wake-induced production correlation between turbines
-  as a component of portfolio risk.
-- **Economics:** NPV, LCOE, and CVaR(95%) evaluation of the resulting portfolios, based on NREL's
-  2024 Annual Technology Baseline for land-based wind.
+## Data
 
-## Data source
+All wind data are free and public: ERA5 reanalysis (Hersbach et al., 2020,
+https://doi.org/10.1002/qj.3803) hourly 100 m wind speed/direction and 10 m wind speed, retrieved
+through the [Open-Meteo Historical Weather API](https://open-meteo.com) (no authentication).
 
-All wind data are freely and publicly available: hourly wind speed and direction at 100 m height
-are retrieved from the ERA5 reanalysis (Hersbach et al., 2020, *Q. J. R. Meteorol. Soc.*) via the
-[Open-Meteo Historical Weather API](https://open-meteo.com) (no authentication required). No
-proprietary or restricted data are used anywhere in this pipeline.
+## Turbine model
 
-## Repository structure
-
-```
-src/
-  download_era5_tehuantepec.py   # downloads the 20 candidate grid points (2000-2024, hourly)
-  power_curve.py                 # idealized Vestas V150-4.2 MW power curve
-  process_capacity_factors.py    # wind speed -> capacity factor, builds the processed dataset
-  level1_portfolio.py            # correlation pre-filter, clustering, Markowitz optimization
-  wake_model.py                  # Bastankhah-Gaussian wake deficit + layout generator
-  level2_layout.py               # wake-risk-aware turbine layout parametric search
-  economics.py                   # NPV / LCOE / CVaR95 evaluation
-  make_figures.py                # regenerates all data-driven figures
-data/
-  raw/                           # (not committed - see "Reproducing the data" below)
-  processed/                     # compact processed capacity-factor / wind datasets
-results/                         # JSON/CSV outputs of each pipeline stage
-figures/                         # regenerated figures (PNG, 300 dpi)
-```
+Acciona AW-77/1500 (1.5 MW, rotor diameter 77 m), **80 m hub height**; datasheet cut-in / rated /
+cut-out speeds 3.5 / 11.1 / 25.0 m/s with an idealized cubic ramp (no manufacturer power-curve
+table was available). ERA5 provides 100 m and 10 m winds, so hub-height speed is obtained by
+power-law extrapolation of the 100 m series with an **hourly shear exponent** computed from the
+10 m and 100 m series (clipped to 0–0.6). Wake model: Bastankhah-Gaussian, C_T = 0.8, wake growth
+k = 0.075, quadratic energy-deficit superposition (Katic et al., 1986).
 
 ## Reproducing the analysis
 
 ```bash
 pip install -r requirements.txt
-python src/download_era5_tehuantepec.py      # ~5 min, downloads 20 x ~7 MB JSON files
-python src/process_capacity_factors.py
-python src/level1_portfolio.py
-python src/level2_layout.py
-python src/economics.py
-python src/make_figures.py
+python src/download_era5_tehuantepec.py   # 100 m wind speed/direction (20 sites)  [optional: processed copy included]
+python src/download_era5_10m.py           # 10 m wind speed (20 sites)
+python src/process_capacity_factors.py    # hub-height speeds + capacity factors
+python src/level1_portfolio.py            # iteration-0 portfolios (no wake feedback)
+python src/level2_layout.py               # best-site layout search + land-density sweep
+python src/two_level_loop.py              # iterative Level 1 <-> Level 2 integration
+python src/economics.py                   # NPV / LCOE / CVaR on the converged portfolios
+python src/make_figures.py && python src/make_figure1.py
 ```
 
-Raw ERA5 downloads are not committed to this repository (129 MB total, and trivially
-re-downloadable from a public, free API); everything downstream of
-`process_capacity_factors.py` is fully reproducible from the small processed files already
-included under `data/processed/`.
+Raw downloads are not committed (`data/raw*/` is git-ignored); the 100 m series needed by
+`process_capacity_factors.py` is provided in `data/processed/`.
 
-## Reproducibility notes — please read
+## Main results (this repository, `results/`)
 
-This repository is a **from-scratch reconstruction** of the analysis pipeline, rewritten after
-the original working scripts (created in an earlier, ephemeral development session) were lost
-before they could be archived. It was rebuilt directly from the methodology described in the
-paper (Section 3) and re-downloading the same ERA5 data from the same public source. This is
-disclosed here in the interest of full transparency about what "reproducing" this result means
-in practice:
+| Portfolio | E[CF] (%) | Std (%) | Sharpe | LCOE (USD/MWh) | NPV (USD M) |
+|---|---|---|---|---|---|
+| Conservative (T03 7%, T15 91.5%, T11/T20 ~1% each) | 8.2 | 11.0 | 0.75 | 308.9 | −414.7 |
+| Balanced / max-Sharpe (T03 57%, T18 43%) | 47.0 | 38.1 | 1.24 | 56.9 | −101.2 |
+| Aggressive / single best site (T03) | 52.9 | 44.6 | 1.19 | 49.5 | −44.0 |
 
-- **Site-level capacity factors (Table 1):** 15 of the 20 sites reproduce the published mean
-  capacity factor *exactly* (to 0.1 percentage point), which confirms that the ERA5-via-Open-Meteo
-  data pull is deterministic and that the calibrated power curve (`power_curve.py`, rated wind
-  speed 12 m/s) matches the original. The remaining 5 sites (T04, T05, T07, T11, T17) differ by up
-  to ~14 percentage points, most likely due to sensitivity of Open-Meteo's grid-cell snapping for
-  coordinates that fall near a 0.25° ERA5 cell boundary.
-- **Level 1 portfolios:** because 5 site-level capacity factors differ slightly, the correlation
-  pre-filter retains 7 sites here versus 8 in the paper (T07 is dropped). The **aggressive /
-  single-site portfolio reproduces almost exactly** (E[CF] 50.8% vs. 50.9% published, Sharpe 1.15
-  vs. 1.15 published). The conservative and balanced portfolios differ more, both because of the
-  T07 discrepancy and because this repository defines them by an explicit selection rule (a
-  return-floor percentile and a numerical max-Sharpe search, respectively) that is a reasonable
-  but not necessarily identical reconstruction of the original portfolio selection.
-- **Economics:** the single-site/aggressive economics reproduce closely (LCOE 51.5 vs. 51.0
-  USD/MWh published; CVaR95 26.6 vs. 26.7 USD M/yr published). Conservative/balanced economics
-  inherit the portfolio-composition differences above.
-- **Level 2 wake-risk layout:** the AEP-maximizing layout's annual energy production reproduces
-  almost exactly (296.6 GWh/yr here vs. 297.7 GWh/yr published). The *qualitative* finding —
-  incorporating wake-induced deficit correlation into the layout objective meaningfully reduces
-  intra-farm correlation at negligible AEP cost — reproduces robustly, but the specific magnitude
-  of the correlation reduction found by the grid search in this repository is larger than the
-  10.9% reported in the paper, most likely because the original comparison selected a specific,
-  minimally-invasive spacing/stagger adjustment rather than the global minimum-correlation point
-  within the AEP tolerance, and this repository's wind-direction/speed discretization (16 x 8
-  bins) is coarser than what was likely used originally.
+* **Loop (Eqs. 16–17):** converges after one re-solve (max weight change 9.1×10⁻⁴ < ε = 10⁻³).
+  Wake-induced capacity-factor loss has a standard deviation of only 0.4–0.9 percentage points
+  versus 10–45 points for site capacity factors, so Σʷᵃᵏᵉ is a very small correction to Σ⁽⁰⁾.
+* **Level 2:** with a land budget of 36 D² per turbine (≈7 MW/km² for this turbine) the
+  AEP-maximizing layout (6D × 6D, staggered rows) is also the minimum wake-risk layout, i.e. no
+  trade-off appears. A small trade-off appears only at 30 D²
+  (`results/layout_density_sweep.csv`: wake risk −14% for −0.12% AEP, correlation slightly higher).
+* The pre-filter retains 7 of 20 sites; the k-means clusters are wind regimes (high / moderate /
+  low wind), not contiguous geographic zones.
 
-In short: **the qualitative conclusions of the paper are robustly reproduced by this repository**
-(best-site concentration is NPV-optimal but risk-concentrated; diversification and wake-risk-aware
-layout both deliver real, if resource-dependent, risk reductions at low-to-negligible cost), but
-exact published decimal values should be read from the paper itself, not assumed to be
-bit-for-bit reproducible from this rebuilt pipeline. See `results/` for this repository's own
-output values.
+## Limitations
 
-## Turbine and cost assumptions
-
-- Turbine: Vestas V150-4.2 MW (rotor diameter 150 m, hub height 100 m), idealized cubic power
-  curve, cut-in 3 m/s, rated 12 m/s, cut-out 24.5 m/s.
-- Wake model: Bastankhah-Gaussian (Bastankhah and Porté-Agel, 2014), thrust coefficient 0.8,
-  wake growth rate k = 0.075, energy-deficit superposition (Katic et al., 1986).
-- Economics: CAPEX USD 1,968/kW, OPEX USD 43/kW-yr (NREL 2024 ATB, land-based wind), 8% discount
-  rate, 25-year lifetime, USD 45/MWh representative electricity price, 200 MW reference capacity.
+* ERA5 (≈0.25°) resolves the Isthmus wind corridor only coarsely; capacity factors are
+  reanalysis-based, not measurement-validated.
+* Idealized power curve and constant C_T; the 80 m wind speeds are extrapolated, not observed.
+* Σʷᵃᵏᵉ enters Level 1 only through covariance (as in Eq. 16); mean wake losses are not deducted
+  from the expected return.
+* Economics use a single representative price (USD 45/MWh), not nodal prices.
 
 ## License
 
-Code in this repository is released under the MIT License (see `LICENSE`). ERA5 data are
-produced by the Copernicus Climate Change Service (C3S) and are subject to the
-[Copernicus license](https://cds.climate.copernicus.eu/api/v2/terms/static/licence-to-use-copernicus-products.pdf);
-they are not redistributed here beyond the compact derived capacity-factor dataset in
-`data/processed/`.
-
-## Citation
-
-If you use this code, please cite the paper above. Please also cite ERA5
-(Hersbach et al., 2020, https://doi.org/10.1002/qj.3803) and, if relevant, Open-Meteo
-(https://open-meteo.com) as the data access layer.
+Code: MIT (see `LICENSE`). ERA5 data are produced by the Copernicus Climate Change Service and
+are subject to the Copernicus license; only compact derived series are redistributed here.

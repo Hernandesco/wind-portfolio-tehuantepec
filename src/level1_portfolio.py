@@ -15,6 +15,7 @@ RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 RHO_MAX = 0.85
+CONSERVATIVE_RETURN_PERCENTILE = 40
 
 
 def correlation_prefilter(cf_df, rho_max=RHO_MAX):
@@ -27,111 +28,90 @@ def correlation_prefilter(cf_df, rho_max=RHO_MAX):
             if si in dropped or sj in dropped:
                 continue
             if corr.loc[si, sj] >= rho_max:
-                # drop the one with lower expected return
-                if means[si] >= means[sj]:
-                    dropped.add(sj)
-                else:
-                    dropped.add(si)
-    retained = [s for s in sites if s not in dropped]
-    return retained, corr
+                dropped.add(sj if means[si] >= means[sj] else si)
+    return [s for s in sites if s not in dropped], corr
 
 
 def assign_regimes(cf_df, retained, n_clusters=3):
+    """k-means on the capacity-factor series; clusters named by their mean capacity factor
+    (the clusters are wind regimes, not contiguous geographic zones)."""
     X = cf_df[retained].T.values
-    km = KMeans(n_clusters=n_clusters, n_init=10, random_state=0).fit(X)
-    labels = km.labels_
-    # order clusters by mean longitude (west/central/east) using site_stats
-    return dict(zip(retained, labels))
+    labels = KMeans(n_clusters=n_clusters, n_init=10, random_state=0).fit(X).labels_
+    mean_cf = [cf_df[retained].values[:, labels == k].mean() for k in range(n_clusters)]
+    order = np.argsort(mean_cf)[::-1]
+    names = {int(k): n for k, n in zip(order, ["High-wind regime", "Moderate-wind regime", "Low-wind regime"])}
+    return {s: names[int(l)] for s, l in zip(retained, labels)}
 
 
-def min_variance_weights(cov, target_return, mu, rho_max_pairwise, corr):
+def min_variance_weights(cov, target_return, mu):
     n = len(mu)
-    x0 = np.ones(n) / n
-
-    def objective(w):
-        return w @ cov @ w
-
-    cons = [
-        {"type": "eq", "fun": lambda w: np.sum(w) - 1.0},
-        {"type": "ineq", "fun": lambda w: w @ mu - target_return},
-    ]
-    bounds = [(0.0, 1.0)] * n
-    res = minimize(objective, x0, method="SLSQP", bounds=bounds, constraints=cons,
-                    options={"maxiter": 500, "ftol": 1e-12})
+    cons = [{"type": "eq", "fun": lambda w: np.sum(w) - 1.0},
+            {"type": "ineq", "fun": lambda w: w @ mu - target_return}]
+    res = minimize(lambda w: w @ cov @ w, np.ones(n) / n, method="SLSQP",
+                   bounds=[(0.0, 1.0)] * n, constraints=cons,
+                   options={"maxiter": 500, "ftol": 1e-12})
     return res.x if res.success else None
 
 
 def sharpe(w, mu, cov):
-    ret = w @ mu
     std = np.sqrt(w @ cov @ w)
-    return ret / std if std > 0 else 0.0
+    return (w @ mu) / std if std > 0 else 0.0
+
+
+def solve_portfolios(mu, cov):
+    """Return weight vectors for the conservative, balanced (max-Sharpe) and aggressive portfolios."""
+    n = len(mu)
+    w_cons = min_variance_weights(cov, np.percentile(mu, CONSERVATIVE_RETURN_PERCENTILE), mu)
+    res = minimize(lambda w: -sharpe(w, mu, cov), np.ones(n) / n, method="SLSQP",
+                   bounds=[(0.0, 1.0)] * n,
+                   constraints=[{"type": "eq", "fun": lambda w: np.sum(w) - 1.0}],
+                   options={"maxiter": 1000, "ftol": 1e-12})
+    w_agg = np.zeros(n)
+    w_agg[int(np.argmax(mu))] = 1.0
+    return {"conservative": w_cons, "balanced": res.x, "aggressive": w_agg}
+
+
+def summarize(w, mu, cov, sites, regimes):
+    reg = {}
+    for s, wi in zip(sites, w):
+        reg[regimes[s]] = reg.get(regimes[s], 0.0) + float(wi)
+    return {
+        "E_CF_pct": float(w @ mu * 100),
+        "std_pct": float(np.sqrt(w @ cov @ w) * 100),
+        "sharpe": float(sharpe(w, mu, cov)),
+        "weights": {s: float(wi) for s, wi in zip(sites, w) if wi > 0.005},
+        "regime_weights": {k: v for k, v in reg.items() if v > 0.005},
+    }
 
 
 def main():
     cf_df = pd.read_parquet(os.path.join(DATA_DIR, "capacity_factors.parquet"))
     site_stats = pd.read_csv(os.path.join(DATA_DIR, "site_stats.csv"), index_col=0)
 
-    retained, corr = correlation_prefilter(cf_df, RHO_MAX)
-    print(f"Retained {len(retained)}/{len(cf_df.columns)} sites after rho_max={RHO_MAX} filter:", retained)
-
+    retained, _ = correlation_prefilter(cf_df, RHO_MAX)
+    print(f"Retained {len(retained)}/{cf_df.shape[1]} sites (rho_max={RHO_MAX}):", retained)
     regimes = assign_regimes(cf_df, retained)
-    print("Cluster regimes:", regimes)
+    print("Regimes:", regimes)
 
     mu = cf_df[retained].mean().values
     cov = cf_df[retained].cov().values
 
-    # Efficient frontier: sweep target returns
-    lo, hi = mu.min(), mu.max()
-    targets = np.linspace(lo, hi, 40)
-    frontier = []
-    for t in targets:
-        w = min_variance_weights(cov, t, mu, RHO_MAX, corr)
+    rows = []
+    for t in np.linspace(mu.min(), mu.max(), 40):
+        w = min_variance_weights(cov, t, mu)
         if w is not None:
-            ret = w @ mu
-            std = np.sqrt(w @ cov @ w)
-            frontier.append({"target": t, "ret": ret, "std": std, "sharpe": sharpe(w, mu, cov),
-                              "weights": dict(zip(retained, w))})
-    frontier_df = pd.DataFrame([{k: v for k, v in f.items() if k != "weights"} for f in frontier])
-    frontier_df.to_csv(os.path.join(RESULTS_DIR, "efficient_frontier.csv"), index=False)
+            rows.append({"target": t, "ret": w @ mu, "std": np.sqrt(w @ cov @ w), "sharpe": sharpe(w, mu, cov)})
+    pd.DataFrame(rows).to_csv(os.path.join(RESULTS_DIR, "efficient_frontier.csv"), index=False)
 
-    # Conservative: min-variance with modest return floor (25th pct of retained means)
-    ret_floor_cons = np.percentile(mu, 40)
-    w_cons = min_variance_weights(cov, ret_floor_cons, mu, RHO_MAX, corr)
-
-    # Balanced: maximize Sharpe ratio numerically
-    def neg_sharpe(w):
-        return -sharpe(w, mu, cov)
-    n = len(mu)
-    cons = [{"type": "eq", "fun": lambda w: np.sum(w) - 1.0}]
-    bounds = [(0.0, 1.0)] * n
-    res_bal = minimize(neg_sharpe, np.ones(n) / n, method="SLSQP", bounds=bounds,
-                        constraints=cons, options={"maxiter": 1000, "ftol": 1e-12})
-    w_bal = res_bal.x
-
-    # Aggressive: full concentration in best site
-    best_idx = int(np.argmax(mu))
-    w_agg = np.zeros(n)
-    w_agg[best_idx] = 1.0
-
-    portfolios = {}
-    for name, w in [("conservative", w_cons), ("balanced", w_bal), ("aggressive", w_agg)]:
-        portfolios[name] = {
-            "E_CF_pct": float(w @ mu * 100),
-            "std_pct": float(np.sqrt(w @ cov @ w) * 100),
-            "sharpe": float(sharpe(w, mu, cov)),
-            "weights": {s: float(wi) for s, wi in zip(retained, w) if wi > 0.005},
-        }
-        print(name, portfolios[name])
+    ws = solve_portfolios(mu, cov)
+    portfolios = {k: summarize(w, mu, cov, retained, regimes) for k, w in ws.items()}
+    for k, v in portfolios.items():
+        print(k, v)
 
     with open(os.path.join(RESULTS_DIR, "portfolios.json"), "w") as f:
-        json.dump({
-            "rho_max": RHO_MAX,
-            "retained_sites": retained,
-            "regimes": {k: int(v) for k, v in regimes.items()},
-            "portfolios": portfolios,
-        }, f, indent=2)
-
-    print("\nSaved efficient_frontier.csv and portfolios.json to", RESULTS_DIR)
+        json.dump({"rho_max": RHO_MAX, "retained_sites": retained, "regimes": regimes,
+                   "portfolios": portfolios}, f, indent=2)
+    print("saved portfolios.json / efficient_frontier.csv")
 
 
 if __name__ == "__main__":

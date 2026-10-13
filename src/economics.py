@@ -70,7 +70,7 @@ def evaluate_portfolio(weights, cf_df):
 
 def main():
     cf_df = pd.read_parquet(os.path.join(DATA_DIR, "capacity_factors.parquet"))
-    with open(os.path.join(RESULTS_DIR, "portfolios.json")) as f:
+    with open(os.path.join(RESULTS_DIR, "portfolios_converged.json")) as f:
         port_data = json.load(f)
 
     econ_results = {}

@@ -4,7 +4,7 @@ parametric turbine-layout generator for the Level 2 wake-risk analysis.
 """
 import numpy as np
 
-D = 150.0  # rotor diameter, m (Vestas V150)
+D = 77.0  # rotor diameter, m (Acciona AW-77/1500)
 CT = 0.8   # representative thrust coefficient near rated
 K_WAKE = 0.075  # wake growth rate, typical onshore value
 
@@ -25,20 +25,20 @@ def wake_deficit(x, y, ct=CT, k=K_WAKE, d=D):
 
 def turbine_layout(n_rows=4, n_cols=4, along_D=10.0, cross_D=5.0,
                     stagger_frac=0.0, rotation_deg=0.0, d=D):
-    """Generate an n_rows x n_cols grid of turbine (x, y) positions in meters,
-    with spacing in rotor diameters, optional row staggering, and rotation."""
+    """n_rows x n_cols turbine grid (positions in meters). With rotation 0 the rows are
+    spaced along_D rotor diameters apart along the N-S axis (the site's dominant wind
+    axis) and cross_D apart in the E-W direction; alternate rows are shifted by
+    stagger_frac * cross_D. rotation_deg rotates the whole layout."""
     xs, ys = [], []
     for i in range(n_rows):
-        row_offset = (i % 2) * stagger_frac * cross_D * d if stagger_frac else 0.0
+        shift = (i % 2) * stagger_frac * cross_D * d
         for j in range(n_cols):
-            x = i * along_D * d
-            y = j * cross_D * d + row_offset
-            xs.append(x)
-            ys.append(y)
+            ys.append(i * along_D * d)
+            xs.append(j * cross_D * d + shift)
     pos = np.column_stack([xs, ys])
     pos -= pos.mean(axis=0)
-    theta = np.radians(rotation_deg)
-    rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+    t = np.radians(rotation_deg)
+    rot = np.array([[np.cos(t), -np.sin(t)], [np.sin(t), np.cos(t)]])
     return pos @ rot.T
 
 

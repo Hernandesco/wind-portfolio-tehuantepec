@@ -1,0 +1,62 @@
+{
+  "rho_max": 0.85,
+  "retained_sites": [
+    "T03",
+    "T06",
+    "T11",
+    "T15",
+    "T16",
+    "T18",
+    "T20"
+  ],
+  "regimes": {
+    "T03": "High-wind regime",
+    "T06": "Low-wind regime",
+    "T11": "Low-wind regime",
+    "T15": "Low-wind regime",
+    "T16": "Low-wind regime",
+    "T18": "Moderate-wind regime",
+    "T20": "Low-wind regime"
+  },
+  "portfolios": {
+    "conservative": {
+      "E_CF_pct": 8.21852890542833,
+      "std_pct": 11.023518296467106,
+      "sharpe": 0.7455449961073012,
+      "weights": {
+        "T03": 0.07089969170084134,
+        "T11": 0.007200323541917618,
+        "T15": 0.914756020636322,
+        "T20": 0.0071439641209191905
+      },
+      "regime_weights": {
+        "High-wind regime": 0.07089969170084134,
+        "Low-wind regime": 0.9291003082991588
+      }
+    },
+    "balanced": {
+      "E_CF_pct": 47.02347353404461,
+      "std_pct": 38.05433370011718,
+      "sharpe": 1.2356929937233354,
+      "weights": {
+        "T03": 0.5733772502283818,
+        "T18": 0.426622749771618
+      },
+      "regime_weights": {
+        "High-wind regime": 0.5733772502283818,
+        "Moderate-wind regime": 0.426622749771618
+      }
+    },
+    "aggressive": {
+      "E_CF_pct": 52.85379638165494,
+      "std_pct": 44.59378307327891,
+      "sharpe": 1.1852279115858533,
+      "weights": {
+        "T03": 1.0
+      },
+      "regime_weights": {
+        "High-wind regime": 1.0
+      }
+    }
+  }
+}
