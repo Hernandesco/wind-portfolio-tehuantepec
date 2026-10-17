@@ -84,6 +84,14 @@ correlation pre-filter (rho_max = 0.85): *conservative* = E[CF] >= 20 %, *balanc
   from the expected return.
 * Economics use a single representative price (USD 45/MWh), not nodal prices.
 
+## Archive and citation
+
+A versioned snapshot (v1.0.0) is archived on Zenodo (DOI: to be added after deposit; see `CITATION.cff` and `.zenodo.json`). The Zenodo archive
+additionally contains the raw ERA5 10 m wind-speed downloads (`data/raw_10m`), which are not tracked in Git, so that the hub-height extrapolation step can be
+reproduced offline. The 100 m series needed by `process_capacity_factors.py` are provided in `data/processed/` in both places.
+
+Attribution: contains modified Copernicus Climate Change Service information (ERA5); neither the European Commission nor ECMWF is responsible for any use made of it.
+
 ## License
 
 Code: MIT (see `LICENSE`). ERA5 data are produced by the Copernicus Climate Change Service and

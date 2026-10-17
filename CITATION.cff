@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software or data, please cite it using the metadata below."
+title: "Code and data for: A two-level Markowitz framework for wind farm portfolio optimization (Isthmus of Tehuantepec, Mexico)"
+type: software
+authors:
+  - family-names: "Ramirez-Jimenez"
+    given-names: "Alida"
+    affiliation: "Escuela Nacional de Estudios Superiores Unidad Juriquilla, Universidad Nacional Autónoma de México"
+  - family-names: "Hernandez-Escobedo"
+    given-names: "Quetzalcoatl"
+    affiliation: "Escuela Nacional de Estudios Superiores Unidad Juriquilla, Universidad Nacional Autónoma de México"
+version: "1.0.0"
+date-released: "2026-10-16"
+license: MIT
+repository-code: "https://github.com/Hernandesco/wind-portfolio-tehuantepec"
+abstract: "Python code, processed data and results supporting the study of two-level Markowitz portfolio optimization of wind capacity across 20 candidate sites in the Isthmus of Tehuantepec (Oaxaca, Mexico) with wake-risk-aware turbine layout search, an iterative Level 1-Level 2 feedback loop and an NPV/LCOE/CVaR economic evaluation (Acciona AW-77/1500 turbine, 80 m hub height, ERA5 2000-2024). Includes the hourly ERA5-derived capacity-factor, wind-speed and wind-direction series (data/processed), the raw ERA5 10 m wind-speed downloads (data/raw_10m, Zenodo archive only), all result files and the scripts that regenerate every figure. Contains modified Copernicus Climate Change Service information (ERA5, Hersbach et al., 2020), retrieved through the Open-Meteo API."
+keywords:
+  - "wind energy"
+  - "portfolio theory"
+  - "Markowitz optimization"
+  - "wake effects"
+  - "Tehuantepec"
+  - "transmission congestion"
+  - "diversification"
+  - "ERA5"
